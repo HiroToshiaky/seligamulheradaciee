@@ -82,12 +82,8 @@
 
     async function init() {
       // Total global de acessos — soma de TODOS os visitantes
+      // SEMPRE via CountAPI (sem fallback local pra manter sincronizado)
       let total = await hit('total');
-      if (total === null) {
-        // Fallback local: conta pelo menos localmente se a API falhar
-        total = (Security.safeGet('total_local') || 0) + 1;
-        Security.safeSet('total_local', total);
-      }
 
       // Acessos de hoje (chave global por data)
       let today = await hit('day_' + todayKey());
@@ -104,12 +100,7 @@
     }
 
     async function inc(key) {
-      const v = await hit(key);
-      if (v === null) {
-        // fallback local só para não perder o clique caso a API falhe
-        const local = (Security.safeGet(key + '_local') || 0) + 1;
-        Security.safeSet(key + '_local', local);
-      }
+      await hit(key);
       await updateAdmin();
     }
 
