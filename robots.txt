@@ -1,0 +1,6 @@
+# Libera todos os buscadores (Google, Bing etc.) para indexar o site inteiro
+User-agent: *
+Allow: /
+
+# Troque "SEU-SITE-AQUI" pelo endereço real depois de publicar no Netlify
+Sitemap: https://SEU-SITE-AQUI/sitemap.xml
