@@ -86,34 +86,37 @@
     }
 
     async function init() {
-      if (!window.firebaseDb) {
-        console.log('Firebase não carregou ainda');
-        setTimeout(init, 500);
-        return;
+      // Primeiro tenta com Firebase
+      if (window.firebaseDb && window.firebaseRef && window.firebaseSet && window.firebaseOnValue) {
+        try {
+          const totalRef = window.firebaseRef(window.firebaseDb, 'visitors/total');
+          const todayRef = window.firebaseRef(window.firebaseDb, 'visitors/today_' + todayKey());
+          
+          window.firebaseOnValue(totalRef, snapshot => {
+            const current = snapshot.val() || 0;
+            const newTotal = current + 1;
+            window.firebaseSet(totalRef, newTotal);
+            updateBadge(newTotal);
+          }, { onlyOnce: true });
+          
+          window.firebaseOnValue(todayRef, snapshot => {
+            const current = snapshot.val() || 0;
+            const newToday = current + 1;
+            window.firebaseSet(todayRef, newToday);
+          }, { onlyOnce: true });
+          
+          Security.safeSet('last_visit', new Date().toISOString());
+          return;
+        } catch (e) {
+          console.error('Erro Firebase:', e);
+        }
       }
       
-      try {
-        const totalRef = window.firebaseRef(window.firebaseDb, 'visitors/total');
-        const todayRef = window.firebaseRef(window.firebaseDb, 'visitors/today_' + todayKey());
-        
-        // Lê valor atual e incrementa
-        window.firebaseOnValue(totalRef, snapshot => {
-          const current = snapshot.val() || 0;
-          const newTotal = current + 1;
-          window.firebaseSet(totalRef, newTotal);
-          updateBadge(newTotal);
-        }, { onlyOnce: true });
-        
-        window.firebaseOnValue(todayRef, snapshot => {
-          const current = snapshot.val() || 0;
-          const newToday = current + 1;
-          window.firebaseSet(todayRef, newToday);
-        }, { onlyOnce: true });
-        
-        Security.safeSet('last_visit', new Date().toISOString());
-      } catch (e) {
-        console.error('Erro Firebase:', e);
-      }
+      // Fallback: usa localStorage
+      const total = (Security.safeGet('total') || 0) + 1;
+      Security.safeSet('total', total);
+      updateBadge(total);
+      Security.safeSet('last_visit', new Date().toISOString());
     }
 
     function updateBadge(n) {
