@@ -125,7 +125,18 @@
     }
 
     async function inc(key) {
-      await hit(key);
+      // Incrementa no Firebase se disponível
+      if (window.firebaseDb && window.firebaseRef && window.firebaseSet && window.firebaseOnValue) {
+        try {
+          const ref = window.firebaseRef(window.firebaseDb, 'metrics/' + key);
+          window.firebaseOnValue(ref, snapshot => {
+            const current = snapshot.val() || 0;
+            window.firebaseSet(ref, current + 1);
+          }, { onlyOnce: true });
+        } catch (e) {
+          console.error('Erro ao incrementar métrica:', e);
+        }
+      }
       await updateAdmin();
     }
 
