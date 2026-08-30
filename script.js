@@ -376,21 +376,13 @@
   let touchStartX = 0;
   let availableVideos = [];
   
-  async function checkAvailableVideos() {
-    availableVideos = [];
-    for (let i = 1; i <= 5; i++) {
-      try {
-        const res = await fetch('videos/video-' + i + '.mp4', { method: 'HEAD' });
-        if (res.ok) availableVideos.push(i);
-      } catch { }
-    }
-  }
-  
-  async function openVideosModal() {
+  function openVideosModal() {
     if (!Security.checkRate()) return;
-    await checkAvailableVideos();
+    const totalVideos = 3; // MUDE AQUI: quantos vídeos você tem (1 a 5)
+    availableVideos = [];
+    for (let i = 1; i <= totalVideos; i++) availableVideos.push(i);
     if (availableVideos.length === 0) {
-      alert('Nenhum vídeo disponível no momento.');
+      alert('Nenhum vídeo disponível.');
       return;
     }
     currentVideoIdx = availableVideos[0];
