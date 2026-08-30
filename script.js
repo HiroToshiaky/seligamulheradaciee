@@ -395,9 +395,30 @@
   let touchStartX = 0;
   let availableVideos = [];
   
-  function openVideosModal() {
+  async function openVideosModal() {
     if (!Security.checkRate()) return;
-    const totalVideos = 1; // Você tem 3 vídeos
+    
+    // Detecta automaticamente quais vídeos existem
+    availableVideos = [];
+    for (let i = 1; i <= 5; i++) {
+      try {
+        const res = await fetch('videos/video-' + i + '.mp4', { method: 'HEAD' });
+        if (res.ok) {
+          availableVideos.push(i);
+        } else {
+          break;
+        }
+      } catch {
+        break;
+      }
+    }
+    
+    if (availableVideos.length === 0) {
+      alert('Nenhum vídeo disponível.');
+      return;
+    }
+    
+    const totalVideos = availableVideos.length;
     availableVideos = [];
     for (let i = 1; i <= totalVideos; i++) availableVideos.push(i);
     if (availableVideos.length === 0) {
