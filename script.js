@@ -363,5 +363,32 @@
     }
   });
 
+  /* ══════════════════════════════════
+     VIDEOS MODAL
+  ══════════════════════════════════ */
+  function openVideosModal() {
+    if (!Security.checkRate()) return;
+    let html = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">';
+    for (let i = 1; i <= 5; i++) {
+      html += '<div style="cursor:pointer" onclick="playVideo(' + i + ')">';
+      html += '<video width="100%" height="150" style="border-radius:8px;background:#000;object-fit:cover" preload="metadata"><source src="videos/video-' + i + '.mp4" type="video/mp4"></video>';
+      html += '<p style="text-align:center;margin-top:8px;font-weight:600">Vídeo ' + i + '</p>';
+      html += '</div>';
+    }
+    html += '</div>';
+    
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px';
+    modal.innerHTML = '<div style="background:#fff;border-radius:12px;padding:24px;max-width:900px;width:100%;position:relative"><button onclick="this.parentElement.parentElement.remove()" style="position:absolute;top:12px;right:12px;background:none;border:none;font-size:28px;cursor:pointer;color:#999">×</button><h3 style="margin-bottom:20px">📹 Vídeos</h3>' + html + '</div>';
+    document.body.appendChild(modal);
+  }
+  
+  function playVideo(n) {
+    const videoModal = document.createElement('div');
+    videoModal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;z-index:10000;padding:20px';
+    videoModal.innerHTML = '<div style="position:relative;max-width:90vw;max-height:90vh"><button onclick="this.parentElement.parentElement.remove()" style="position:absolute;top:-40px;right:0;background:none;border:none;font-size:32px;cursor:pointer;color:#fff">×</button><video width="100%" height="100%" controls autoplay style="border-radius:8px"><source src="videos/video-' + n + '.mp4" type="video/mp4">Seu navegador não suporta vídeos.</video></div>';
+    document.body.appendChild(videoModal);
+  }
+
   /* INIT */
   document.addEventListener('DOMContentLoaded', () => { Metrics.init(); loadA11yPrefs(); });
