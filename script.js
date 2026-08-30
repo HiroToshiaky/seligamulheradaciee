@@ -397,7 +397,7 @@
   
   function openVideosModal() {
     if (!Security.checkRate()) return;
-    const totalVideos = 3; // Você tem 3 vídeos
+    const totalVideos = 1; // Você tem 3 vídeos
     availableVideos = [];
     for (let i = 1; i <= totalVideos; i++) availableVideos.push(i);
     if (availableVideos.length === 0) {
