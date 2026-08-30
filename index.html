@@ -638,6 +638,19 @@
     <button onclick="toggleAdmin()" style="margin-top:12px;background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:.75rem;width:100%">Fechar</button>
   </div>
 
+  <!-- VIDEO PRELOAD -->
+  <div id="video-preload-container" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none">
+    <video id="preload-video-1" preload="auto" muted playsinline>
+      <source src="videos/video-1.mp4" type="video/mp4">
+    </video>
+    <video id="preload-video-2" preload="auto" muted playsinline>
+      <source src="videos/video-2.mp4" type="video/mp4">
+    </video>
+    <video id="preload-video-3" preload="auto" muted playsinline>
+      <source src="videos/video-3.mp4" type="video/mp4">
+    </video>
+  </div>
+
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
     import { getDatabase, ref, onValue, set } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js';
