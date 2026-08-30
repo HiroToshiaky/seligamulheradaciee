@@ -4,7 +4,7 @@
     {
       "label": "Converter Vídeos",
       "type": "shell",
-      "command": "./convert-videos.sh",
+      "command": "~/.local/bin/convert-videos.sh",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
