@@ -7,7 +7,7 @@
      SECURITY MODULE
   ══════════════════════════════════ */
   const Security = (() => {
-    const RATE_WINDOW = 60000, MAX_ACTIONS = 120;
+    const RATE_WINDOW = 60000, MAX_ACTIONS = 9999;
     let actionLog = [];
 
     function checkRate() {
