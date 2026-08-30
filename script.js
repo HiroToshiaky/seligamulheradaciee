@@ -421,9 +421,17 @@
     if (currentIdx > 0) navHtml += '<button onclick="prevVideo()" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.3);border:none;color:#fff;font-size:28px;cursor:pointer;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:10002">‹</button>';
     if (currentIdx < availableVideos.length - 1) navHtml += '<button onclick="nextVideo()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.3);border:none;color:#fff;font-size:28px;cursor:pointer;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:10002">›</button>';
     
-    modal.innerHTML = '<div style="position:relative;width:100%;max-width:800px;aspect-ratio:16/9" id="video-container" ontouchstart="touchStart(event)" ontouchend="touchEnd(event)">' + navHtml + '<button onclick="closeVideoPopup()" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,.6);border:none;color:#fff;font-size:28px;cursor:pointer;width:40px;height:40px;border-radius:50%;z-index:10003;display:flex;align-items:center;justify-content:center">×</button><video width="100%" height="100%" controls autoplay style="border-radius:8px;display:block;object-fit:contain"><source src="videos/video-' + currentVideoIdx + '.mp4" type="video/mp4">Seu navegador não suporta vídeos.</video></div><p style="color:#fff;text-align:center;margin-top:12px;font-size:13px">Vídeo ' + (currentIdx + 1) + ' de ' + availableVideos.length + '</p>';
+    modal.innerHTML = '<div style="position:relative;width:100%;max-width:800px;aspect-ratio:16/9;background:#000;border-radius:8px;overflow:hidden" id="video-container" ontouchstart="touchStart(event)" ontouchend="touchEnd(event)">' + navHtml + '<button onclick="closeVideoPopup()" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,.6);border:none;color:#fff;font-size:28px;cursor:pointer;width:40px;height:40px;border-radius:50%;z-index:10003;display:flex;align-items:center;justify-content:center">×</button><div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px">⏳ Carregando...</div></div><p style="color:#fff;text-align:center;margin-top:12px;font-size:13px">Vídeo ' + (currentIdx + 1) + ' de ' + availableVideos.length + '</p>';
     
     document.body.appendChild(modal);
+    
+    // Carrega o vídeo após 100ms
+    setTimeout(() => {
+      const container = document.getElementById('video-container');
+      if (container) {
+        container.innerHTML = navHtml + '<button onclick="closeVideoPopup()" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,.6);border:none;color:#fff;font-size:28px;cursor:pointer;width:40px;height:40px;border-radius:50%;z-index:10003;display:flex;align-items:center;justify-content:center">×</button><video width="100%" height="100%" controls autoplay style="border-radius:8px;display:block;object-fit:contain"><source src="videos/video-' + currentVideoIdx + '.mp4" type="video/mp4"></video>';
+      }
+    }, 100);
   }
   
   function nextVideo() {
