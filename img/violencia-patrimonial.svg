@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Ícone de violência patrimonial">
+  <defs>
+    <linearGradient id="grad-patrimonial" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6B2D8B"/>
+      <stop offset="100%" stop-color="#3D1257"/>
+    </linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="56" fill="url(#grad-patrimonial)"/>
+  <!-- Carteira com cadeado: controle e retenção de bens/dinheiro -->
+  <g fill="none" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="30" y="46" width="60" height="38" rx="6"/>
+    <path d="M30 58 h60"/>
+    <rect x="66" y="64" width="16" height="13" rx="2.5" fill="#4A1870"/>
+    <path d="M69 64 v-5 a5 5 0 0 1 10 0 v5"/>
+    <path d="M40 40 l14-8 14 8" opacity=".85"/>
+  </g>
+</svg>

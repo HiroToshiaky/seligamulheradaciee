@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Ícone de violência psicológica">
+  <defs>
+    <linearGradient id="grad-psico" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9B59B6"/>
+      <stop offset="100%" stop-color="#6B2D8B"/>
+    </linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="56" fill="url(#grad-psico)"/>
+  <!-- Silhueta de cabeça com uma rachadura, representando o abalo psicológico -->
+  <g fill="none" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M60 32 c14 0 24 11 24 25 c0 9-4 14-7 18 l-2 9 h-10 l-1-7 h-8 l-1 7 h-9 l-2-10 c-4-4-8-9-8-17 c0-14 10-25 24-25 z"/>
+    <path d="M58 40 l-6 12 8 4 -6 12" stroke-width="3.5" opacity=".9"/>
+  </g>
+</svg>
