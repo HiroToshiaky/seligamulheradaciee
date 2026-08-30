@@ -167,6 +167,20 @@
               }, { onlyOnce: true });
             });
           }
+          
+          const completeRef = window.firebaseRef(window.firebaseDb, 'metrics/completed');
+          complete = await new Promise(resolve => {
+            window.firebaseOnValue(completeRef, snapshot => {
+              resolve(snapshot.val());
+            }, { onlyOnce: true });
+          });
+          
+          const sharesRef = window.firebaseRef(window.firebaseDb, 'metrics/shares');
+          shares = await new Promise(resolve => {
+            window.firebaseOnValue(sharesRef, snapshot => {
+              resolve(snapshot.val());
+            }, { onlyOnce: true });
+          });
         } catch (e) {
           console.error('Erro Firebase admin:', e);
         }
@@ -180,8 +194,8 @@
       
       if(s('admin-total')) s('admin-total').textContent = total !== null && total !== undefined ? Number(total).toLocaleString('pt-BR') : '–';
       if(s('admin-today')) s('admin-today').textContent = today !== null && today !== undefined ? Number(today).toLocaleString('pt-BR') : '–';
-      if(s('admin-complete')) s('admin-complete').textContent = complete !== null ? Number(complete).toLocaleString('pt-BR') : '–';
-      if(s('admin-shares')) s('admin-shares').textContent = shares !== null ? Number(shares).toLocaleString('pt-BR') : '–';
+      if(s('admin-complete')) s('admin-complete').textContent = complete !== null && complete !== undefined ? Number(complete).toLocaleString('pt-BR') : '–';
+      if(s('admin-shares')) s('admin-shares').textContent = shares !== null && shares !== undefined ? Number(shares).toLocaleString('pt-BR') : '–';
       if(s('admin-last')) s('admin-last').textContent = last ? new Date(last).toLocaleString('pt-BR') : '–';
       if (total !== null && total !== undefined) updateBadge(total);
     }
