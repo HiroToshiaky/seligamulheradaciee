@@ -131,17 +131,48 @@
 
     async function updateAdmin(preTotal, preToday) {
       const s = id => document.getElementById(id);
-      const total = preTotal !== undefined ? preTotal : await get('total');
-      const today = preToday !== undefined ? preToday : await get('day_' + todayKey());
-      const complete = await get('completed');
-      const shares = await get('shares');
+      
+      let total = preTotal;
+      let today = preToday;
+      let complete = null;
+      let shares = null;
+      
+      // Se Firebase tá disponível, tenta pegar dados de lá
+      if (window.firebaseDb && window.firebaseRef && window.firebaseOnValue) {
+        try {
+          if (!total) {
+            const totalRef = window.firebaseRef(window.firebaseDb, 'visitors/total');
+            total = await new Promise(resolve => {
+              window.firebaseOnValue(totalRef, snapshot => {
+                resolve(snapshot.val());
+              }, { onlyOnce: true });
+            });
+          }
+          if (!today) {
+            const todayRef = window.firebaseRef(window.firebaseDb, 'visitors/today_' + todayKey());
+            today = await new Promise(resolve => {
+              window.firebaseOnValue(todayRef, snapshot => {
+                resolve(snapshot.val());
+              }, { onlyOnce: true });
+            });
+          }
+        } catch (e) {
+          console.error('Erro Firebase admin:', e);
+        }
+      }
+      
+      // Fallback localStorage
+      if (!total) total = Security.safeGet('total');
+      if (!today) today = Security.safeGet('today_' + todayKey());
+      
       const last = Security.safeGet('last_visit');
-      if(s('admin-total')) s('admin-total').textContent = total !== null ? Number(total).toLocaleString('pt-BR') : '–';
-      if(s('admin-today')) s('admin-today').textContent = today !== null ? Number(today).toLocaleString('pt-BR') : '–';
+      
+      if(s('admin-total')) s('admin-total').textContent = total !== null && total !== undefined ? Number(total).toLocaleString('pt-BR') : '–';
+      if(s('admin-today')) s('admin-today').textContent = today !== null && today !== undefined ? Number(today).toLocaleString('pt-BR') : '–';
       if(s('admin-complete')) s('admin-complete').textContent = complete !== null ? Number(complete).toLocaleString('pt-BR') : '–';
       if(s('admin-shares')) s('admin-shares').textContent = shares !== null ? Number(shares).toLocaleString('pt-BR') : '–';
       if(s('admin-last')) s('admin-last').textContent = last ? new Date(last).toLocaleString('pt-BR') : '–';
-      if (total !== null) updateBadge(total);
+      if (total !== null && total !== undefined) updateBadge(total);
     }
 
     return { init, inc, updateAdmin };
