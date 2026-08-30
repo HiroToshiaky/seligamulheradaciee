@@ -1,4 +1,9 @@
-/* ══════════════════════════════════
+
+
+
+
+
+|/* ══════════════════════════════════
      SECURITY MODULE
   ══════════════════════════════════ */
   const Security = (() => {
@@ -82,11 +87,25 @@
 
     async function init() {
       // Total global de acessos — soma de TODOS os visitantes
-      // SEMPRE via CountAPI (sem fallback local pra manter sincronizado)
       let total = await hit('total');
+      
+      // Se a API falhar, tenta usar fallback local
+      if (total === null) {
+        total = Security.safeGet('fallback_total') || 1;
+        Security.safeSet('fallback_total', total + 1);
+      } else {
+        // Se conseguiu da API, salva como referência
+        Security.safeSet('fallback_total', total);
+      }
 
       // Acessos de hoje (chave global por data)
       let today = await hit('day_' + todayKey());
+      if (today === null) {
+        today = Security.safeGet('fallback_today') || 1;
+        Security.safeSet('fallback_today', today + 1);
+      } else {
+        Security.safeSet('fallback_today', today);
+      }
 
       Security.safeSet('last_visit', new Date().toISOString());
 
@@ -364,30 +383,58 @@
   });
 
   /* ══════════════════════════════════
-     VIDEOS MODAL
+     VIDEOS POPUP COM NAVEGAÇÃO
   ══════════════════════════════════ */
+  let currentVideoIdx = 1;
+  let touchStartX = 0;
+  
   function openVideosModal() {
     if (!Security.checkRate()) return;
-    let html = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">';
-    for (let i = 1; i <= 5; i++) {
-      html += '<div style="cursor:pointer" onclick="playVideo(' + i + ')">';
-      html += '<video width="100%" height="150" style="border-radius:8px;background:#000;object-fit:cover" preload="metadata"><source src="videos/video-' + i + '.mp4" type="video/mp4"></video>';
-      html += '<p style="text-align:center;margin-top:8px;font-weight:600">Vídeo ' + i + '</p>';
-      html += '</div>';
-    }
-    html += '</div>';
+    currentVideoIdx = 1;
+    showVideoPopup();
+  }
+  
+  function showVideoPopup() {
+    const existing = document.getElementById('video-popup-modal');
+    if (existing) existing.remove();
     
     const modal = document.createElement('div');
-    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px';
-    modal.innerHTML = '<div style="background:#fff;border-radius:12px;padding:24px;max-width:900px;width:100%;position:relative"><button onclick="this.parentElement.parentElement.remove()" style="position:absolute;top:12px;right:12px;background:none;border:none;font-size:28px;cursor:pointer;color:#999">×</button><h3 style="margin-bottom:20px">📹 Vídeos</h3>' + html + '</div>';
+    modal.id = 'video-popup-modal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.95);display:flex;align-items:center;justify-content:center;z-index:10000;padding:20px';
+    
+    let navHtml = '';
+    if (currentVideoIdx > 1) navHtml += '<button onclick="prevVideo()" style="position:absolute;left:20px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.2);border:none;color:#fff;font-size:36px;cursor:pointer;width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center">‹</button>';
+    if (currentVideoIdx < 5) navHtml += '<button onclick="nextVideo()" style="position:absolute;right:20px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.2);border:none;color:#fff;font-size:36px;cursor:pointer;width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center">›</button>';
+    
+    modal.innerHTML = '<div style="position:relative;max-width:90vw;max-height:90vh;width:100%" id="video-container" ontouchstart="touchStart(event)" ontouchend="touchEnd(event)">' + navHtml + '<button onclick="closeVideoPopup()" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,.5);border:none;color:#fff;font-size:32px;cursor:pointer;width:45px;height:45px;border-radius:50%;z-index:10001">×</button><video id="video-player" width="100%" height="100%" controls autoplay style="border-radius:8px;display:block"><source src="videos/video-' + currentVideoIdx + '.mp4" type="video/mp4">Seu navegador não suporta vídeos.</video><p style="color:#fff;text-align:center;margin-top:16px;font-size:14px">Vídeo ' + currentVideoIdx + ' de 5</p></div>';
+    
     document.body.appendChild(modal);
   }
   
-  function playVideo(n) {
-    const videoModal = document.createElement('div');
-    videoModal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;z-index:10000;padding:20px';
-    videoModal.innerHTML = '<div style="position:relative;max-width:90vw;max-height:90vh"><button onclick="this.parentElement.parentElement.remove()" style="position:absolute;top:-40px;right:0;background:none;border:none;font-size:32px;cursor:pointer;color:#fff">×</button><video width="100%" height="100%" controls autoplay style="border-radius:8px"><source src="videos/video-' + n + '.mp4" type="video/mp4">Seu navegador não suporta vídeos.</video></div>';
-    document.body.appendChild(videoModal);
+  function nextVideo() {
+    if (currentVideoIdx < 5) { currentVideoIdx++; showVideoPopup(); }
+  }
+  
+  function prevVideo() {
+    if (currentVideoIdx > 1) { currentVideoIdx--; showVideoPopup(); }
+  }
+  
+  function closeVideoPopup() {
+    const modal = document.getElementById('video-popup-modal');
+    if (modal) modal.remove();
+  }
+  
+  function touchStart(e) {
+    touchStartX = e.touches[0].clientX;
+  }
+  
+  function touchEnd(e) {
+    const touchEndX = e.changedTouches[0].clientX;
+    const diff = touchStartX - touchEndX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) nextVideo();
+      else prevVideo();
+    }
   }
 
   /* INIT */
