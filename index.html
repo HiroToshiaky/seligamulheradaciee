@@ -646,6 +646,29 @@
     <button onclick="toggleAdmin()" style="margin-top:12px;background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:.75rem;width:100%">Fechar</button>
   </div>
 
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+    import { getDatabase, ref, onValue, set } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js';
+    
+    const firebaseConfig = {
+      apiKey: 'AIzaSyDS4bnmNr2q3bWNtwQPaIPTN0uJJkI3lJo',
+      authDomain: 'seligamocada-c3f64.firebaseapp.com',
+      databaseURL: 'https://seligamocada-c3f64-default-rtdb.firebaseio.com',
+      projectId: 'seligamocada-c3f64',
+      storageBucket: 'seligamocada-c3f64.firebasestorage.app',
+      messagingSenderId: '692851438722',
+      appId: '1:692851438722:web:47f1223fefea0be948f09b',
+      measurementId: 'G-DTVCBZTM8S'
+    };
+    
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    
+    window.firebaseDb = db;
+    window.firebaseRef = ref;
+    window.firebaseOnValue = onValue;
+    window.firebaseSet = set;
+  </script>
   <script src="script.js" defer></script>
 </body>
 </html>

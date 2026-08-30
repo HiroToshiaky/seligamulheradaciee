@@ -86,18 +86,34 @@
     }
 
     async function init() {
-      // Total global de acessos — usa localStorage pra não travar
-      const total = (Security.safeGet('total') || 0) + 1;
-      Security.safeSet('total', total);
-
-      // Acessos de hoje
-      const today = (Security.safeGet('today_' + todayKey()) || 0) + 1;
-      Security.safeSet('today_' + todayKey(), today);
-
-      Security.safeSet('last_visit', new Date().toISOString());
-
-      updateBadge(total);
-      await updateAdmin(total, today);
+      if (!window.firebaseDb) {
+        console.log('Firebase não carregou ainda');
+        setTimeout(init, 500);
+        return;
+      }
+      
+      try {
+        const totalRef = window.firebaseRef(window.firebaseDb, 'visitors/total');
+        const todayRef = window.firebaseRef(window.firebaseDb, 'visitors/today_' + todayKey());
+        
+        // Lê valor atual e incrementa
+        window.firebaseOnValue(totalRef, snapshot => {
+          const current = snapshot.val() || 0;
+          const newTotal = current + 1;
+          window.firebaseSet(totalRef, newTotal);
+          updateBadge(newTotal);
+        }, { onlyOnce: true });
+        
+        window.firebaseOnValue(todayRef, snapshot => {
+          const current = snapshot.val() || 0;
+          const newToday = current + 1;
+          window.firebaseSet(todayRef, newToday);
+        }, { onlyOnce: true });
+        
+        Security.safeSet('last_visit', new Date().toISOString());
+      } catch (e) {
+        console.error('Erro Firebase:', e);
+      }
     }
 
     function updateBadge(n) {
@@ -399,10 +415,10 @@
     
     const currentIdx = availableVideos.indexOf(currentVideoIdx);
     let navHtml = '';
-    if (currentIdx > 0) navHtml += '<button onclick="prevVideo()" style="position:absolute;left:20px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.2);border:none;color:#fff;font-size:36px;cursor:pointer;width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center">‹</button>';
-    if (currentIdx < availableVideos.length - 1) navHtml += '<button onclick="nextVideo()" style="position:absolute;right:20px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.2);border:none;color:#fff;font-size:36px;cursor:pointer;width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center">›</button>';
+    if (currentIdx > 0) navHtml += '<button onclick="prevVideo()" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.3);border:none;color:#fff;font-size:28px;cursor:pointer;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:10002">‹</button>';
+    if (currentIdx < availableVideos.length - 1) navHtml += '<button onclick="nextVideo()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.3);border:none;color:#fff;font-size:28px;cursor:pointer;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:10002">›</button>';
     
-    modal.innerHTML = '<div style="position:relative;max-width:90vw;max-height:90vh;width:100%" id="video-container" ontouchstart="touchStart(event)" ontouchend="touchEnd(event)">' + navHtml + '<button onclick="closeVideoPopup()" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,.5);border:none;color:#fff;font-size:32px;cursor:pointer;width:45px;height:45px;border-radius:50%;z-index:10001">×</button><video id="video-player" width="100%" height="100%" controls autoplay style="border-radius:8px;display:block"><source src="videos/video-' + currentVideoIdx + '.mp4" type="video/mp4">Seu navegador não suporta vídeos.</video><p style="color:#fff;text-align:center;margin-top:16px;font-size:14px">Vídeo ' + (currentIdx + 1) + ' de ' + availableVideos.length + '</p></div>';
+    modal.innerHTML = '<div style="position:relative;width:100%;max-width:800px;aspect-ratio:16/9" id="video-container" ontouchstart="touchStart(event)" ontouchend="touchEnd(event)">' + navHtml + '<button onclick="closeVideoPopup()" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,.6);border:none;color:#fff;font-size:28px;cursor:pointer;width:40px;height:40px;border-radius:50%;z-index:10003;display:flex;align-items:center;justify-content:center">×</button><video width="100%" height="100%" controls autoplay style="border-radius:8px;display:block;object-fit:contain"><source src="videos/video-' + currentVideoIdx + '.mp4" type="video/mp4">Seu navegador não suporta vídeos.</video></div><p style="color:#fff;text-align:center;margin-top:12px;font-size:13px">Vídeo ' + (currentIdx + 1) + ' de ' + availableVideos.length + '</p>';
     
     document.body.appendChild(modal);
   }
