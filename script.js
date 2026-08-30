@@ -461,13 +461,19 @@
   document.addEventListener('DOMContentLoaded', () => { Metrics.init(); loadA11yPrefs(); });
   
   /* VIDEO PRELOAD */
-  window.addEventListener('load', () => {
-    setTimeout(() => {
-      for (let i = 1; i <= 3; i++) {
-        const video = document.getElementById('preload-video-' + i);
-        if (video) {
-          video.load();
-        }
+  function startVideoPreload() {
+    for (let i = 1; i <= 3; i++) {
+      const video = document.getElementById('preload-video-' + i);
+      if (video) {
+        video.load();
       }
-    }, 2000);
+    }
+  }
+  
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(startVideoPreload, 100);
+  });
+  
+  window.addEventListener('load', () => {
+    startVideoPreload();
   });
