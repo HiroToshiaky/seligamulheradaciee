@@ -406,7 +406,7 @@
     ];
     if(mg) mg.textContent = msgs[quizScore] || msgs[2];
     if(nb) nb.style.display = 'inline-flex';
-    Metrics.inc('quiz');
+    Metrics.inc('completed');
   }
 
   /* ══════════════════════════════════
