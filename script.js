@@ -55,7 +55,7 @@
      números ficavam presos em "–" do nada.
   ══════════════════════════════════ */
   const Metrics = (() => {
-    const TIMEOUT_MS = 4000;
+    const TIMEOUT_MS = 8000;
 
     function todayKey() {
       const d = new Date();
@@ -174,6 +174,8 @@
         }
       }
 
+
+      
       // Fallback: localStorage (Firebase indisponível)
       const total = (Security.safeGet('total') || 0) + 1;
       Security.safeSet('total', total);
@@ -196,15 +198,15 @@
       const current = (Security.safeGet(key) || 0);
       const newValue = current + 1;
       Security.safeSet(key, newValue);
-      console.log('inc: incrementado localmente', key, 'para', newValue);
+      console.log('📱 LOCAL:', key, 'incrementado para', newValue);
 
       // Depois tenta incrementar no Firebase — usa a função incrementCounter
       // que lida com timeout e erro automaticamente
       incrementCounter('metrics/' + key).then(val => {
-        console.log('inc: Firebase atualizado', key, 'para', val);
+        console.log('🌐 FIREBASE:', key, 'atualizado globalmente para', val);
       }).catch(e => {
-        console.error('Erro ao incrementar ' + key + ' no Firebase:', e);
-        console.log('inc: usando fallback local para', key);
+        console.error('❌ Firebase falhou:', key, e.message);
+        console.log('📱 Usando fallback local para', key);
       });
       
       await updateAdmin();
