@@ -95,14 +95,14 @@
             window.firebaseOnValue(totalRef, snapshot => resolve(snapshot), { onlyOnce: true });
           });
           const newTotal = (totalSnap.val() || 0) + 1;
-          await window.firebaseSet(totalRef, newTotal);
+          window.firebaseSet(totalRef, newTotal).catch(e => console.error('Erro ao salvar total:', e));
           updateBadge(newTotal);
 
           const todaySnap = await new Promise(resolve => {
             window.firebaseOnValue(todayRef, snapshot => resolve(snapshot), { onlyOnce: true });
           });
           const newToday = (todaySnap.val() || 0) + 1;
-          await window.firebaseSet(todayRef, newToday);
+          window.firebaseSet(todayRef, newToday).catch(e => console.error('Erro ao salvar today:', e));
 
           Security.safeSet('last_visit_timestamp', Date.now());
           Security.safeSet('last_visit', new Date().toISOString());
