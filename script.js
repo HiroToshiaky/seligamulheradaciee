@@ -62,8 +62,8 @@
       return 'today_' + d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
     }
 
-    // Lê um valor uma única vez, com timeout e tratamento de erro de
-    // permissão — nunca fica pendurada esperando pra sempre.
+    // Lê um valor uma única vez, com timeout e cancelCallback (tratamento de erro)
+    // — nunca fica pendurada esperando pra sempre.
     function readOnce(path) {
       return new Promise((resolve, reject) => {
         if (!window.firebaseDb || !window.firebaseRef || !window.firebaseOnValue) {
@@ -86,13 +86,13 @@
               clearTimeout(timer);
               resolve(snapshot.val());
             },
-            error => {
-              // Isso é o que faltava: erro de permissão agora É um erro de
-              // verdade (rejeita a promise), em vez de nunca chamar nada.
+            (error) => {
+              // cancelCallback: erro de permissão, conexão, etc
+              // Agora é tratado como erro de verdade, não silêncio
               if (settled) return;
               settled = true;
               clearTimeout(timer);
-              console.error('Firebase negou leitura de', path, error);
+              console.error('Firebase negou leitura de ' + path, error);
               reject(error);
             },
             { onlyOnce: true }
