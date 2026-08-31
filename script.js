@@ -86,6 +86,17 @@
     }
 
     async function init() {
+      // Verifica se já contou essa visita (sessão do browser)
+      const sessionId = 'visitor_session_' + new Date().toDateString();
+      if (Security.safeGet(sessionId)) {
+        console.log('Visita já contada hoje');
+        const totalRef = window.firebaseRef(window.firebaseDb, 'visitors/total');
+        window.firebaseOnValue(totalRef, snapshot => {
+          updateBadge(snapshot.val());
+        }, { onlyOnce: true });
+        return;
+      }
+      
       // Aguarda Firebase carregar
       let attempts = 0;
       while (!window.firebaseDb && attempts < 10) {
@@ -98,7 +109,7 @@
           const totalRef = window.firebaseRef(window.firebaseDb, 'visitors/total');
           const todayRef = window.firebaseRef(window.firebaseDb, 'visitors/today_' + todayKey());
           
-          // Lê, incrementa e salva (sem listener recorrente)
+          // Lê, incrementa e salva
           const totalSnap = await new Promise(resolve => {
             window.firebaseOnValue(totalRef, snapshot => {
               resolve(snapshot);
@@ -116,6 +127,8 @@
           const newToday = (todaySnap.val() || 0) + 1;
           await window.firebaseSet(todayRef, newToday);
           
+          // Marca que já contou essa visita
+          Security.safeSet(sessionId, true);
           Security.safeSet('last_visit', new Date().toISOString());
           return;
         } catch (e) {
@@ -127,6 +140,7 @@
       const total = (Security.safeGet('total') || 0) + 1;
       Security.safeSet('total', total);
       updateBadge(total);
+      Security.safeSet(sessionId, true);
       Security.safeSet('last_visit', new Date().toISOString());
     }
 
