@@ -86,29 +86,40 @@
     }
 
     async function init() {
-      // Primeiro tenta com Firebase
+      // Aguarda Firebase carregar
+      let attempts = 0;
+      while (!window.firebaseDb && attempts < 10) {
+        await new Promise(r => setTimeout(r, 500));
+        attempts++;
+      }
+      
       if (window.firebaseDb && window.firebaseRef && window.firebaseSet && window.firebaseOnValue) {
         try {
           const totalRef = window.firebaseRef(window.firebaseDb, 'visitors/total');
           const todayRef = window.firebaseRef(window.firebaseDb, 'visitors/today_' + todayKey());
           
-          window.firebaseOnValue(totalRef, snapshot => {
-            const current = snapshot.val() || 0;
-            const newTotal = current + 1;
-            window.firebaseSet(totalRef, newTotal);
-            updateBadge(newTotal);
-          }, { onlyOnce: true });
+          // Lê, incrementa e salva (sem listener recorrente)
+          const totalSnap = await new Promise(resolve => {
+            window.firebaseOnValue(totalRef, snapshot => {
+              resolve(snapshot);
+            }, { onlyOnce: true });
+          });
+          const newTotal = (totalSnap.val() || 0) + 1;
+          await window.firebaseSet(totalRef, newTotal);
+          updateBadge(newTotal);
           
-          window.firebaseOnValue(todayRef, snapshot => {
-            const current = snapshot.val() || 0;
-            const newToday = current + 1;
-            window.firebaseSet(todayRef, newToday);
-          }, { onlyOnce: true });
+          const todaySnap = await new Promise(resolve => {
+            window.firebaseOnValue(todayRef, snapshot => {
+              resolve(snapshot);
+            }, { onlyOnce: true });
+          });
+          const newToday = (todaySnap.val() || 0) + 1;
+          await window.firebaseSet(todayRef, newToday);
           
           Security.safeSet('last_visit', new Date().toISOString());
           return;
         } catch (e) {
-          console.error('Erro Firebase:', e);
+          console.error('Erro Firebase init:', e);
         }
       }
       
@@ -193,6 +204,8 @@
       // Fallback localStorage
       if (!total) total = Security.safeGet('total');
       if (!today) today = Security.safeGet('today_' + todayKey());
+      if (!complete) complete = Security.safeGet('completed');
+      if (!shares) shares = Security.safeGet('shares');
       
       const last = Security.safeGet('last_visit');
       
