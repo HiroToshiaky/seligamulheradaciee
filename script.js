@@ -194,12 +194,17 @@
     async function inc(key) {
       // Incrementa no localStorage imediatamente (resposta instantânea na tela)
       const current = (Security.safeGet(key) || 0);
-      Security.safeSet(key, current + 1);
+      const newValue = current + 1;
+      Security.safeSet(key, newValue);
+      console.log('inc: incrementado localmente', key, 'para', newValue);
 
       // Depois tenta incrementar no Firebase — usa a função incrementCounter
       // que lida com timeout e erro automaticamente
-      incrementCounter('metrics/' + key).catch(e => {
+      incrementCounter('metrics/' + key).then(val => {
+        console.log('inc: Firebase atualizado', key, 'para', val);
+      }).catch(e => {
         console.error('Erro ao incrementar ' + key + ' no Firebase:', e);
+        console.log('inc: usando fallback local para', key);
       });
       
       await updateAdmin();
@@ -401,7 +406,7 @@
     ];
     if(mg) mg.textContent = msgs[quizScore] || msgs[2];
     if(nb) nb.style.display = 'inline-flex';
-    if(quizScore === 3) Metrics.inc('completed');
+    Metrics.inc('quiz');
   }
 
   /* ══════════════════════════════════
