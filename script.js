@@ -86,14 +86,23 @@
     }
 
     async function init() {
-      // Verifica se já contou essa visita (sessão do browser)
-      const sessionId = 'visitor_session_' + new Date().toDateString();
-      if (Security.safeGet(sessionId)) {
-        console.log('Visita já contada hoje');
-        const totalRef = window.firebaseRef(window.firebaseDb, 'visitors/total');
-        window.firebaseOnValue(totalRef, snapshot => {
-          updateBadge(snapshot.val());
-        }, { onlyOnce: true });
+      // Verifica se já contou uma visita nas últimas 24 horas
+      const lastVisitTime = Security.safeGet('last_visit_timestamp');
+      const now = Date.now();
+      const oneHourMs = 60 * 60 * 1000;
+      
+      if (lastVisitTime && (now - lastVisitTime) < oneHourMs) {
+        console.log('Visita já contada na última hora');
+        if (window.firebaseDb && window.firebaseRef && window.firebaseOnValue) {
+          try {
+            const totalRef = window.firebaseRef(window.firebaseDb, 'visitors/total');
+            window.firebaseOnValue(totalRef, snapshot => {
+              updateBadge(snapshot.val());
+            }, { onlyOnce: true });
+          } catch (e) {
+            console.error('Erro ao buscar total:', e);
+          }
+        }
         return;
       }
       
@@ -127,8 +136,10 @@
           const newToday = (todaySnap.val() || 0) + 1;
           await window.firebaseSet(todayRef, newToday);
           
-          // Marca que já contou essa visita
-          Security.safeSet(sessionId, true);
+
+
+          // Marca timestamp da visita
+          Security.safeSet('last_visit_timestamp', Date.now());
           Security.safeSet('last_visit', new Date().toISOString());
           return;
         } catch (e) {
@@ -138,7 +149,6 @@
       
       // Fallback: usa localStorage
       const total = (Security.safeGet('total') || 0) + 1;
-      Security.safeSet('total', total);
       updateBadge(total);
       Security.safeSet(sessionId, true);
       Security.safeSet('last_visit', new Date().toISOString());
