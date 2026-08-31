@@ -75,6 +75,7 @@
     <button class="nav-link" onclick="goToSection('section-tipos')">Tipos</button>
     <button class="nav-link" onclick="goToSection('section-dados')">Dados</button>
     <button class="nav-link" onclick="goToSection('section-prevencao')">Prevenção</button>
+    <button class="nav-link" onclick="goToSection('section-videos')">Vídeos</button>
     <button class="nav-cta" onclick="toggleNavDrawer(); startExperience();">Fazer o Quiz ▶</button>
   </nav>
 
@@ -316,6 +317,28 @@
         </div>
       </div>
     </section>
+
+    <!-- VÍDEOS DA CAMPANHA -->
+    <section id="section-videos" class="section" style="background:var(--lilac-pale)" aria-labelledby="videos-title">
+      <div class="section-inner">
+        <p class="section-eyebrow">Assista</p>
+        <h2 id="videos-title" class="section-title" style="color:var(--lilac-deep)">Vídeos da Campanha</h2>
+        <div class="divider"></div>
+        <p class="section-body" style="color:var(--dark)">Depoimentos, esclarecimentos e conteúdo em vídeo sobre machismo e violência contra a mulher, produzidos para essa campanha.</p>
+        <div style="text-align:center;margin-top:32px">
+          <button class="btn-white" onclick="openVideosModal()">
+            ▶ Assistir aos vídeos
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Vídeos ocultos, usados só pra pré-carregar (ver startVideoPreload() no script.js) -->
+    <div style="display:none" aria-hidden="true">
+      <video id="preload-video-1" preload="metadata" muted><source src="videos/video-1.mp4" type="video/mp4"></video>
+      <video id="preload-video-2" preload="metadata" muted><source src="videos/video-2.mp4" type="video/mp4"></video>
+      <video id="preload-video-3" preload="metadata" muted><source src="videos/video-3.mp4" type="video/mp4"></video>
+    </div>
 
     <!-- SOBRE O PROJETO -->
     <section style="background:var(--white)" class="section" aria-labelledby="sobre-title">
