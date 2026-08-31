@@ -41,17 +41,78 @@
      METRICS — Contador GLOBAL via Firebase
      Realtime Database. Se o Firebase não
      estiver disponível (SDK não carregou,
-     sem internet, regras bloqueando etc.),
+     sem internet, permissão negada etc.),
      cai automaticamente no modo local
      (localStorage) como reserva.
+
+     IMPORTANTE: toda leitura/escrita tem um
+     TIMEOUT e trata erro de permissão de
+     verdade. Antes, se o Firebase negasse o
+     acesso (ex: regra de segurança bloqueando),
+     a chamada não dava erro nem retornava nada
+     — só ficava travada pra sempre, esperando
+     algo que nunca chegava, e por isso os
+     números ficavam presos em "–" do nada.
   ══════════════════════════════════ */
   const Metrics = (() => {
-    // Mesma chave de "hoje" usada em TODO o módulo — Firebase e fallback local
-    // usam exatamente o mesmo formato agora (antes um usava "today_" e o outro
-    // "day_", o que fazia os números não baterem ao alternar entre os modos).
+    const TIMEOUT_MS = 4000;
+
     function todayKey() {
       const d = new Date();
       return 'today_' + d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+    }
+
+    // Lê um valor uma única vez, com timeout e tratamento de erro de
+    // permissão — nunca fica pendurada esperando pra sempre.
+    function readOnce(path) {
+      return new Promise((resolve, reject) => {
+        if (!window.firebaseDb || !window.firebaseRef || !window.firebaseOnValue) {
+          reject(new Error('Firebase indisponível'));
+          return;
+        }
+        let settled = false;
+        const timer = setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          reject(new Error('Timeout lendo ' + path));
+        }, TIMEOUT_MS);
+        try {
+          const r = window.firebaseRef(window.firebaseDb, path);
+          window.firebaseOnValue(
+            r,
+            snapshot => {
+              if (settled) return;
+              settled = true;
+              clearTimeout(timer);
+              resolve(snapshot.val());
+            },
+            error => {
+              // Isso é o que faltava: erro de permissão agora É um erro de
+              // verdade (rejeita a promise), em vez de nunca chamar nada.
+              if (settled) return;
+              settled = true;
+              clearTimeout(timer);
+              console.error('Firebase negou leitura de', path, error);
+              reject(error);
+            },
+            { onlyOnce: true }
+          );
+        } catch (e) {
+          if (!settled) { settled = true; clearTimeout(timer); reject(e); }
+        }
+      });
+    }
+
+    // Escreve um valor, com timeout — se travar, não bloqueia o resto do site.
+    function writeOnce(path, value) {
+      if (!window.firebaseDb || !window.firebaseRef || !window.firebaseSet) {
+        return Promise.reject(new Error('Firebase indisponível'));
+      }
+      const r = window.firebaseRef(window.firebaseDb, path);
+      return Promise.race([
+        window.firebaseSet(r, value),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout escrevendo ' + path)), TIMEOUT_MS))
+      ]);
     }
 
     async function init() {
@@ -62,64 +123,46 @@
       const oneHourMs = 60 * 60 * 1000;
 
       if (lastVisitTime && (now - lastVisitTime) < oneHourMs) {
-        if (window.firebaseDb && window.firebaseRef && window.firebaseOnValue) {
-          try {
-            const totalRef = window.firebaseRef(window.firebaseDb, 'visitors/total');
-            window.firebaseOnValue(totalRef, snapshot => {
-              updateBadge(snapshot.val());
-            }, { onlyOnce: true });
-          } catch (e) {
-            console.error('Erro ao buscar total:', e);
-          }
-        }
+        readOnce('visitors/total').then(updateBadge).catch(() => {
+          // sem sorte agora — mantém o que já estiver na tela
+        });
         return;
       }
 
       // Aguarda o SDK do Firebase carregar (até 5s)
       let attempts = 0;
       while (!window.firebaseDb && attempts < 10) {
-        console.log('Aguardando Firebase... tentativa', attempts + 1);
         await new Promise(r => setTimeout(r, 500));
         attempts++;
       }
-      if (!window.firebaseDb) {
-        console.log('Firebase não carregou após 5s, usando fallback local');
-      }
 
-      if (window.firebaseDb && window.firebaseRef && window.firebaseSet && window.firebaseOnValue) {
+      if (window.firebaseDb) {
         try {
-          const totalRef = window.firebaseRef(window.firebaseDb, 'visitors/total');
-          const todayRef = window.firebaseRef(window.firebaseDb, 'visitors/' + todayKey());
-
-          const totalSnap = await new Promise(resolve => {
-            window.firebaseOnValue(totalRef, snapshot => resolve(snapshot), { onlyOnce: true });
-          });
-          const newTotal = (totalSnap.val() || 0) + 1;
-          window.firebaseSet(totalRef, newTotal).catch(e => console.error('Erro ao salvar total:', e));
+          const currentTotal = await readOnce('visitors/total');
+          const newTotal = (currentTotal || 0) + 1;
+          writeOnce('visitors/total', newTotal).catch(e => console.error('Erro ao salvar total:', e));
           updateBadge(newTotal);
 
-          const todaySnap = await new Promise(resolve => {
-            window.firebaseOnValue(todayRef, snapshot => resolve(snapshot), { onlyOnce: true });
-          });
-          const newToday = (todaySnap.val() || 0) + 1;
-          window.firebaseSet(todayRef, newToday).catch(e => console.error('Erro ao salvar today:', e));
+          const currentToday = await readOnce('visitors/' + todayKey());
+          const newToday = (currentToday || 0) + 1;
+          writeOnce('visitors/' + todayKey(), newToday).catch(e => console.error('Erro ao salvar today:', e));
 
           Security.safeSet('last_visit_timestamp', Date.now());
           Security.safeSet('last_visit', new Date().toISOString());
           return;
         } catch (e) {
-          console.error('Erro Firebase init:', e);
+          console.error('Firebase indisponível no init, usando fallback local:', e);
           // cai pro fallback abaixo
         }
       }
 
       // Fallback: localStorage (Firebase indisponível)
       const total = (Security.safeGet('total') || 0) + 1;
-      Security.safeSet('total', total); // <- antes o valor incrementado nunca era salvo
+      Security.safeSet('total', total);
       const todayLocal = (Security.safeGet(todayKey()) || 0) + 1;
       Security.safeSet(todayKey(), todayLocal);
       updateBadge(total);
-      Security.safeSet('last_visit_timestamp', Date.now()); // <- antes usava uma variável inexistente (sessionId)
+      Security.safeSet('last_visit_timestamp', Date.now());
       Security.safeSet('last_visit', new Date().toISOString());
     }
 
@@ -133,19 +176,13 @@
       const current = (Security.safeGet(key) || 0);
       Security.safeSet(key, current + 1);
 
-      // Depois tenta salvar no Firebase também
-      if (window.firebaseDb && window.firebaseRef && window.firebaseSet && window.firebaseOnValue) {
-        try {
-          const ref = window.firebaseRef(window.firebaseDb, 'metrics/' + key);
-          await new Promise((resolve, reject) => {
-            window.firebaseOnValue(ref, snapshot => {
-              const fbCurrent = snapshot.val() || 0;
-              window.firebaseSet(ref, fbCurrent + 1).then(resolve).catch(reject);
-            }, { onlyOnce: true });
-          });
-        } catch (e) {
-          console.error('Erro ao incrementar métrica no Firebase:', e);
-        }
+      // Depois tenta salvar no Firebase também — se falhar/travar, o valor
+      // local já está salvo, então nada se perde.
+      try {
+        const fbCurrent = await readOnce('metrics/' + key);
+        await writeOnce('metrics/' + key, (fbCurrent || 0) + 1);
+      } catch (e) {
+        console.error('Erro ao incrementar métrica no Firebase:', e);
       }
       await updateAdmin();
     }
@@ -153,55 +190,29 @@
     async function updateAdmin(preTotal, preToday) {
       const s = id => document.getElementById(id);
 
-      let total = preTotal;
-      let today = preToday;
-      let complete = null;
-      let shares = null;
-
-      if (window.firebaseDb && window.firebaseRef && window.firebaseOnValue) {
-        try {
-          if (total === undefined || total === null) {
-            const totalRef = window.firebaseRef(window.firebaseDb, 'visitors/total');
-            total = await new Promise(resolve => {
-              window.firebaseOnValue(totalRef, snapshot => resolve(snapshot.val()), { onlyOnce: true });
-            });
-          }
-          if (today === undefined || today === null) {
-            const todayRef = window.firebaseRef(window.firebaseDb, 'visitors/' + todayKey());
-            today = await new Promise(resolve => {
-              window.firebaseOnValue(todayRef, snapshot => resolve(snapshot.val()), { onlyOnce: true });
-            });
-          }
-
-          const completeRef = window.firebaseRef(window.firebaseDb, 'metrics/completed');
-          complete = await new Promise(resolve => {
-            window.firebaseOnValue(completeRef, snapshot => resolve(snapshot.val()), { onlyOnce: true });
-          });
-
-          const sharesRef = window.firebaseRef(window.firebaseDb, 'metrics/shares');
-          shares = await new Promise(resolve => {
-            window.firebaseOnValue(sharesRef, snapshot => resolve(snapshot.val()), { onlyOnce: true });
-          });
-        } catch (e) {
-          console.error('Erro Firebase admin:', e);
-        }
-      }
+      // Cada leitura é independente: se uma travar/falhar, as outras não são
+      // afetadas — antes, um erro em qualquer uma delas deixava TODAS as
+      // outras em "–", mesmo as que teriam funcionado normalmente.
+      const [total, today, complete, shares] = await Promise.all([
+        preTotal !== undefined && preTotal !== null ? Promise.resolve(preTotal) : readOnce('visitors/total').catch(() => null),
+        preToday !== undefined && preToday !== null ? Promise.resolve(preToday) : readOnce('visitors/' + todayKey()).catch(() => null),
+        readOnce('metrics/completed').catch(() => null),
+        readOnce('metrics/shares').catch(() => null),
+      ]);
 
       // Fallback localStorage — só usa o valor local se o Firebase não respondeu
-      // (checagem correta: null/undefined, não "falsy", pra não confundir 0 com "sem dado")
-      if (total === undefined || total === null) total = Security.safeGet('total');
-      if (today === undefined || today === null) today = Security.safeGet(todayKey());
-      if (complete === undefined || complete === null) complete = Security.safeGet('completed');
-      if (shares === undefined || shares === null) shares = Security.safeGet('shares');
-
+      const finalTotal = total !== null && total !== undefined ? total : Security.safeGet('total');
+      const finalToday = today !== null && today !== undefined ? today : Security.safeGet(todayKey());
+      const finalComplete = complete !== null && complete !== undefined ? complete : Security.safeGet('completed');
+      const finalShares = shares !== null && shares !== undefined ? shares : Security.safeGet('shares');
       const last = Security.safeGet('last_visit');
 
-      if(s('admin-total')) s('admin-total').textContent = total !== null && total !== undefined ? Number(total).toLocaleString('pt-BR') : '–';
-      if(s('admin-today')) s('admin-today').textContent = today !== null && today !== undefined ? Number(today).toLocaleString('pt-BR') : '–';
-      if(s('admin-complete')) s('admin-complete').textContent = complete !== null && complete !== undefined ? Number(complete).toLocaleString('pt-BR') : '–';
-      if(s('admin-shares')) s('admin-shares').textContent = shares !== null && shares !== undefined ? Number(shares).toLocaleString('pt-BR') : '–';
+      if(s('admin-total')) s('admin-total').textContent = finalTotal !== null && finalTotal !== undefined ? Number(finalTotal).toLocaleString('pt-BR') : '–';
+      if(s('admin-today')) s('admin-today').textContent = finalToday !== null && finalToday !== undefined ? Number(finalToday).toLocaleString('pt-BR') : '–';
+      if(s('admin-complete')) s('admin-complete').textContent = finalComplete !== null && finalComplete !== undefined ? Number(finalComplete).toLocaleString('pt-BR') : '–';
+      if(s('admin-shares')) s('admin-shares').textContent = finalShares !== null && finalShares !== undefined ? Number(finalShares).toLocaleString('pt-BR') : '–';
       if(s('admin-last')) s('admin-last').textContent = last ? new Date(last).toLocaleString('pt-BR') : '–';
-      if (total !== null && total !== undefined) updateBadge(total);
+      if (finalTotal !== null && finalTotal !== undefined) updateBadge(finalTotal);
     }
 
     return { init, inc, updateAdmin };
