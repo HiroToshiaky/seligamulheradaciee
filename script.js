@@ -78,8 +78,12 @@
       // Aguarda o SDK do Firebase carregar (até 5s)
       let attempts = 0;
       while (!window.firebaseDb && attempts < 10) {
+        console.log('Aguardando Firebase... tentativa', attempts + 1);
         await new Promise(r => setTimeout(r, 500));
         attempts++;
+      }
+      if (!window.firebaseDb) {
+        console.log('Firebase não carregou após 5s, usando fallback local');
       }
 
       if (window.firebaseDb && window.firebaseRef && window.firebaseSet && window.firebaseOnValue) {
