@@ -186,11 +186,22 @@
       Security.safeSet('last_visit', new Date().toISOString());
     }
 
-        const fbCurrent = await readOnce('metrics/' + key);
-        await writeOnce('metrics/' + key, (fbCurrent || 0) + 1);
-      } catch (e) {
-        console.error('Erro ao incrementar métrica no Firebase:', e);
-      }
+    function updateBadge(n) {
+      const el = document.getElementById('visitor-count');
+      if (el && n !== null && n !== undefined) el.textContent = Number(n).toLocaleString('pt-BR');
+    }
+
+    async function inc(key) {
+      // Incrementa no localStorage imediatamente (resposta instantânea na tela)
+      const current = (Security.safeGet(key) || 0);
+      Security.safeSet(key, current + 1);
+
+      // Depois tenta incrementar no Firebase — usa a função incrementCounter
+      // que lida com timeout e erro automaticamente
+      incrementCounter('metrics/' + key).catch(e => {
+        console.error('Erro ao incrementar ' + key + ' no Firebase:', e);
+      });
+      
       await updateAdmin();
     }
 
