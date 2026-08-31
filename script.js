@@ -212,12 +212,14 @@
       // afetadas — antes, um erro em qualquer uma delas deixava TODAS as
       // outras em "–", mesmo as que teriam funcionado normalmente.
       const todayPath = 'visitors/' + todayKey();
+      console.log('updateAdmin: lendo', { todayPath });
       const [total, today, complete, shares] = await Promise.all([
-        preTotal !== undefined && preTotal !== null ? Promise.resolve(preTotal) : readOnce('visitors/total').catch(() => null),
-        preToday !== undefined && preToday !== null ? Promise.resolve(preToday) : readOnce(todayPath).catch(() => null),
-        readOnce('metrics/completed').catch(() => null),
-        readOnce('metrics/shares').catch(() => null),
+        preTotal !== undefined && preTotal !== null ? Promise.resolve(preTotal) : readOnce('visitors/total').catch(e => { console.error('Erro lendo total:', e); return null; }),
+        preToday !== undefined && preToday !== null ? Promise.resolve(preToday) : readOnce(todayPath).catch(e => { console.error('Erro lendo today:', e); return null; }),
+        readOnce('metrics/completed').catch(e => { console.error('Erro lendo completed:', e); return null; }),
+        readOnce('metrics/shares').catch(e => { console.error('Erro lendo shares:', e); return null; }),
       ]);
+      console.log('updateAdmin: resultados', { total, today, complete, shares });
 
       // Fallback localStorage — só usa o valor local se o Firebase não respondeu
       const finalTotal = total !== null && total !== undefined ? total : Security.safeGet('total');
