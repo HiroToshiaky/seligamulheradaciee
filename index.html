@@ -6,13 +6,19 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self';
-                 script-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+                 script-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com;
                  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com;
                  font-src 'self' https://fonts.gstatic.com;
                  img-src 'self';
-                 connect-src 'self' https://api.countapi.xyz;
-                 frame-ancestors 'none';" />
-  <meta http-equiv="X-Frame-Options" content="DENY" />
+                 connect-src 'self' https://api.countapi.xyz https://abacus.jasoncameron.dev https://seligamocada-c3f64-default-rtdb.firebaseio.com wss://seligamocada-c3f64-default-rtdb.firebaseio.com;" />
+  <!--
+    'frame-ancestors' e 'X-Frame-Options' foram removidos daqui porque o navegador
+    IGNORA os dois quando são colocados numa tag <meta> — eles só funcionam de
+    verdade quando enviados como cabeçalho HTTP pelo servidor. Se quiser essa
+    proteção (impedir que o site seja carregado dentro de um <iframe> de outro
+    site), configure isso no painel da hospedagem (ex: arquivo vercel.json no
+    Vercel, ou _headers no Netlify) em vez de no HTML.
+  -->
   <meta http-equiv="X-Content-Type-Options" content="nosniff" />
   <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
   <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()" />
@@ -69,7 +75,7 @@
     <button class="nav-link" onclick="goToSection('section-tipos')">Tipos</button>
     <button class="nav-link" onclick="goToSection('section-dados')">Dados</button>
     <button class="nav-link" onclick="goToSection('section-prevencao')">Prevenção</button>
-    <button class="nav-cta" onclick="toggleNavDrawer(); startExperience();">Participe do desafio ▶</button>
+    <button class="nav-cta" onclick="toggleNavDrawer(); startExperience();">Fazer o Quiz ▶</button>
   </nav>
 
   <!-- ACESSIBILIDADE -->
@@ -153,36 +159,28 @@
         <p class="section-body" style="margin-bottom:28px">
           A <strong>Lei Maria da Penha (Lei nº 11.340/2006)</strong> reconhece cinco formas de violência doméstica e familiar contra a mulher. Clique em cada card para entender:
         </p>
-        <div style="text-align:center;margin-bottom:20px">
-          <button class="btn-primary" onclick="openVideosModal()">🎥 Assistir vídeos educativos</button>
-        </div>
         <div class="cards-grid" role="list">
           <div class="card-type" role="listitem" tabindex="0" onclick="toggleCard(this)" onkeypress="if(event.key==='Enter')toggleCard(this)">
-            <img src="img/violencia-fisica.svg" alt="Ilustração de violência física" class="card-image" />
             <div class="card-icon">👊</div>
             <h4>Física</h4>
             <p class="card-detail">Qualquer conduta que cause dor, lesão ou dano à integridade corporal da mulher: tapas, empurrões, socos, chutes, puxões de cabelo, queimaduras. Deixar marcas visíveis não é requisito — qualquer agressão já é crime.</p>
           </div>
           <div class="card-type" role="listitem" tabindex="0" onclick="toggleCard(this)" onkeypress="if(event.key==='Enter')toggleCard(this)">
-            <img src="img/violencia-psicologica.svg" alt="Ilustração de violência psicológica" class="card-image" />
             <div class="card-icon">🧠</div>
             <h4>Psicológica</h4>
             <p class="card-detail">Ameaças, humilhações, controle, vigilância constante, isolamento de amigos e família, chantagem emocional, gaslighting. É a forma mais comum e muitas vezes precede outras formas de violência.</p>
           </div>
           <div class="card-type" role="listitem" tabindex="0" onclick="toggleCard(this)" onkeypress="if(event.key==='Enter')toggleCard(this)">
-            <img src="img/violencia-sexual.svg" alt="Ilustração de violência sexual" class="card-image" />
             <div class="card-icon">🔒</div>
             <h4>Sexual</h4>
             <p class="card-detail">Qualquer ato que constranja a mulher a participar, manter ou presenciar relação sexual sem consentimento. Inclui estupro marital — dentro do casamento, o sexo forçado também é crime.</p>
           </div>
           <div class="card-type" role="listitem" tabindex="0" onclick="toggleCard(this)" onkeypress="if(event.key==='Enter')toggleCard(this)">
-            <img src="img/violencia-patrimonial.svg" alt="Ilustração de violência patrimonial" class="card-image" />
             <div class="card-icon">💰</div>
             <h4>Patrimonial</h4>
             <p class="card-detail">Retenção ou destruição de documentos, bens, dinheiro e recursos da mulher. Controlar as finanças para criar dependência também é violência patrimonial.</p>
           </div>
           <div class="card-type" role="listitem" tabindex="0" onclick="toggleCard(this)" onkeypress="if(event.key==='Enter')toggleCard(this)">
-            <img src="img/violencia-moral.svg" alt="Ilustração de violência moral" class="card-image" />
             <div class="card-icon">🗣️</div>
             <h4>Moral</h4>
             <p class="card-detail">Calúnia (atribuir crime falso), difamação (ofender a reputação) e injúria (ofender a dignidade). Xingamentos e comentários que diminuem a mulher em público ou privado.</p>
@@ -306,7 +304,7 @@
 
         <div style="text-align:center;margin-top:40px">
           <button class="btn-white" onclick="startExperience()">
-            Participe do desafio →
+            Fazer o quiz interativo →
           </button>
         </div>
       </div>
@@ -325,16 +323,6 @@
           O projeto nasceu do compromisso de jovens aprendizes com a prevenção da violência de gênero e intrafamiliar, promovendo formação cidadã, protagonismo juvenil e ações educativas e transformadoras.
         </p>
         <div class="info-box" style="margin-top:24px">
-          <h3>👥 Nossa Equipe</h3>
-          <p><strong>Instrutor:</strong><br>Euler de Souza Carvalho</p>
-          <p style="margin-top:12px"><strong>Integrantes (Jovens Aprendizes):</strong><br>
-            Ana Luiza Marques<br>
-            Marialva Magalhães<br>
-            Karen Rapuque de Souza Guimarães<br>
-            Danielly Monte da Silva
-          </p>
-        </div>
-        <div class="info-box" style="margin-top:24px">
           <h3>📋 Categoria de inscrição — Art. 5º do Regulamento</h3>
           <p><strong>Categoria I — Campanha de conscientização para redes sociais</strong><br>
           Produção destinada às redes sociais (TikTok, Instagram, Facebook ou similares), contendo conteúdo multimídia voltado à prevenção da violência de gênero e intrafamiliar, conforme o Regulamento do Concurso para Jovens Aprendizes do CIEE — Projeto Se Liga Moçada / Bem Querer Mulher.</p>
@@ -350,7 +338,16 @@
             <li>✅ Masculinidades</li>
           </ul>
         </div>
-
+        <p style="font-size:.78rem;color:var(--grey);margin-top:20px">
+          Inscrições no concurso: <strong>03/08/2026 a 31/08/2026</strong> · Premiação: <strong>25/11/2026</strong> — transmissão pelo YouTube Canal CIEE<br>
+          Site oficial do concurso: <a href="https://www.seligamocada.com.br/concurso2026" style="color:var(--lilac-mid)">www.seligamocada.com.br/concurso2026</a>
+        </p>
+        <p style="font-size:.75rem;color:var(--grey);margin-top:10px">
+          ⚖️ Ao participar, autorizamos o uso irrestrito dos textos, nomes, imagens, sons e vídeos produzidos e submetidos, exclusivamente para fins educativos, institucionais e de interesse público, em caráter não comercial, em meios impressos e digitais, pelos parceiros INDES, Bem Querer Mulher e CIEE, conforme Art. 11.3 do Regulamento.
+        </p>
+        <p style="font-size:.75rem;color:var(--grey);margin-top:6px">
+          ℹ️ As situações e diálogos usados no quiz interativo desta campanha são fictícios, elaborados exclusivamente para fins educativos — não retratam pessoas reais.
+        </p>
       </div>
     </section>
 
@@ -619,7 +616,7 @@
     <p class="footer-tagline">"Informação, conscientização e prevenção — ferramentas para combater o machismo."</p>
     <p>Campanha educativa · Agosto Lilás 2026 · Concurso Bem Querer Mulher / CIEE</p>
     <p style="margin-top:8px">Em situação de violência: <strong>180</strong> (Central da Mulher) · <strong>190</strong> (Polícia)</p>
-    
+    <p style="margin-top:8px">Site oficial do concurso: <a href="https://www.seligamocada.com.br/concurso2026">www.seligamocada.com.br/concurso2026</a></p>
     <p style="margin-top:16px;font-size:.7rem;opacity:.45">
       © 2026 · Sem fins lucrativos · Nenhum dado pessoal é coletado · LGPD ✔
     </p>
@@ -634,45 +631,40 @@
     <div class="admin-row"><span>Quiz completados</span><span class="admin-val" id="admin-complete">–</span></div>
     <div class="admin-row"><span>Compartilhamentos</span><span class="admin-val" id="admin-shares">–</span></div>
     <div class="admin-row"><span>Último acesso</span><span class="admin-val" id="admin-last" style="font-size:.68rem">–</span></div>
-    <div class="admin-row" style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.1)"><span style="font-size:.68rem;color:rgba(255,255,255,.4)">Contador global (CountAPI) — soma todos os visitantes do site</span></div>
+    <div class="admin-row" style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.1)"><span style="font-size:.68rem;color:rgba(255,255,255,.4)">Contador global (com backup automático) — soma todos os visitantes do site</span></div>
     <button onclick="toggleAdmin()" style="margin-top:12px;background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:.75rem;width:100%">Fechar</button>
   </div>
 
-  <!-- VIDEO PRELOAD -->
-  <div id="video-preload-container" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none">
-    <video id="preload-video-1" preload="metadata" muted playsinline crossorigin="anonymous">
-      <source src="videos/video-1.mp4" type="video/mp4">
-    </video>
-    <video id="preload-video-2" preload="metadata" muted playsinline crossorigin="anonymous">
-      <source src="videos/video-2.mp4" type="video/mp4">
-    </video>
-    <video id="preload-video-3" preload="metadata" muted playsinline crossorigin="anonymous">
-      <source src="videos/video-3.mp4" type="video/mp4">
-    </video>
-  </div>
+  <!--
+    Conexão com o Firebase Realtime Database — usado pelo Metrics no script.js
+    (window.firebaseDb / firebaseRef / firebaseSet / firebaseOnValue). Usamos os
+    módulos direto do CDN do Google (gstatic), sem bundler, porque o site é
+    estático. Precisa rodar ANTES do script.js, por isso fica logo acima dele.
 
+    Analytics (getAnalytics) foi deixado de fora de propósito: não é necessário
+    pro contador funcionar, evita liberar mais um domínio na CSP, e evita
+    coletar dados de navegação dos visitantes sem necessidade. Se quiserem
+    ativar depois, é só pedir.
+  -->
   <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
-    import { getDatabase, ref, onValue, set } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js';
-    
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js";
+
     const firebaseConfig = {
-      apiKey: 'AIzaSyDS4bnmNr2q3bWNtwQPaIPTN0uJJkI3lJo',
-      authDomain: 'seligamocada-c3f64.firebaseapp.com',
-      databaseURL: 'https://seligamocada-c3f64-default-rtdb.firebaseio.com',
-      projectId: 'seligamocada-c3f64',
-      storageBucket: 'seligamocada-c3f64.firebasestorage.app',
-      messagingSenderId: '692851438722',
-      appId: '1:692851438722:web:47f1223fefea0be948f09b',
-      measurementId: 'G-DTVCBZTM8S'
+      apiKey: "AIzaSyDS4bnmNr2q3bWNtwQPaIPTN0uJJkI3lJo",
+      authDomain: "seligamocada-c3f64.firebaseapp.com",
+      databaseURL: "https://seligamocada-c3f64-default-rtdb.firebaseio.com/",
+      projectId: "seligamocada-c3f64",
+      storageBucket: "seligamocada-c3f64.firebasestorage.app",
+      messagingSenderId: "692851438722",
+      appId: "1:692851438722:web:47f1223fefea0be948f09b"
     };
-    
+
     const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    
-    window.firebaseDb = db;
+    window.firebaseDb = getDatabase(app);
     window.firebaseRef = ref;
-    window.firebaseOnValue = onValue;
     window.firebaseSet = set;
+    window.firebaseOnValue = onValue;
   </script>
   <script src="script.js" defer></script>
 </body>

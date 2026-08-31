@@ -1,13 +1,8 @@
-
-
-
-
-
 /* ══════════════════════════════════
      SECURITY MODULE
   ══════════════════════════════════ */
   const Security = (() => {
-    const RATE_WINDOW = 60000, MAX_ACTIONS = 9999;
+    const RATE_WINDOW = 60000, MAX_ACTIONS = 60;
     let actionLog = [];
 
     function checkRate() {
@@ -43,56 +38,30 @@
   })();
 
   /* ══════════════════════════════════
-     METRICS — Contador GLOBAL de verdade
-     Usa a API pública CountAPI (gratuita,
-     sem cadastro) para guardar o número
-     num servidor — assim TODOS os
-     visitantes do site, em qualquer
-     computador ou celular, somam para o
-     mesmo total. O localStorage só é
-     usado como reserva (fallback) caso a
-     API esteja fora do ar no momento.
+     METRICS — Contador GLOBAL via Firebase
+     Realtime Database. Se o Firebase não
+     estiver disponível (SDK não carregou,
+     sem internet, regras bloqueando etc.),
+     cai automaticamente no modo local
+     (localStorage) como reserva.
   ══════════════════════════════════ */
   const Metrics = (() => {
-    const NAMESPACE = 'seligamocada-concurso2026';
-    const API = 'https://api.countapi.xyz';
-
+    // Mesma chave de "hoje" usada em TODO o módulo — Firebase e fallback local
+    // usam exatamente o mesmo formato agora (antes um usava "today_" e o outro
+    // "day_", o que fazia os números não baterem ao alternar entre os modos).
     function todayKey() {
       const d = new Date();
-      return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
-    }
-
-    async function hit(key) {
-      // Incrementa um contador global no servidor do CountAPI.
-      try {
-        const res = await fetch(`${API}/hit/${NAMESPACE}/${key}`, { method: 'GET' });
-        if (!res.ok) throw new Error('CountAPI indisponível');
-        const data = await res.json();
-        return typeof data.value === 'number' ? data.value : null;
-      } catch {
-        return null; // sem internet ou API fora do ar — usa fallback local
-      }
-    }
-
-    async function get(key) {
-      try {
-        const res = await fetch(`${API}/get/${NAMESPACE}/${key}`, { method: 'GET' });
-        if (!res.ok) throw new Error('CountAPI indisponível');
-        const data = await res.json();
-        return typeof data.value === 'number' ? data.value : null;
-      } catch {
-        return null;
-      }
+      return 'today_' + d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
     }
 
     async function init() {
-      // Verifica se já contou uma visita nas últimas 24 horas
+      // Verifica se já contou uma visita na última hora (evita inflar o
+      // contador em reloads/abas múltiplas da mesma pessoa)
       const lastVisitTime = Security.safeGet('last_visit_timestamp');
       const now = Date.now();
       const oneHourMs = 60 * 60 * 1000;
-      
+
       if (lastVisitTime && (now - lastVisitTime) < oneHourMs) {
-        console.log('Visita já contada na última hora');
         if (window.firebaseDb && window.firebaseRef && window.firebaseOnValue) {
           try {
             const totalRef = window.firebaseRef(window.firebaseDb, 'visitors/total');
@@ -105,73 +74,71 @@
         }
         return;
       }
-      
-      // Aguarda Firebase carregar
+
+      // Aguarda o SDK do Firebase carregar (até 5s)
       let attempts = 0;
       while (!window.firebaseDb && attempts < 10) {
         await new Promise(r => setTimeout(r, 500));
         attempts++;
       }
-      
+
       if (window.firebaseDb && window.firebaseRef && window.firebaseSet && window.firebaseOnValue) {
         try {
           const totalRef = window.firebaseRef(window.firebaseDb, 'visitors/total');
-          const todayRef = window.firebaseRef(window.firebaseDb, 'visitors/today_' + todayKey());
-          
-          // Lê, incrementa e salva
+          const todayRef = window.firebaseRef(window.firebaseDb, 'visitors/' + todayKey());
+
           const totalSnap = await new Promise(resolve => {
-            window.firebaseOnValue(totalRef, snapshot => {
-              resolve(snapshot);
-            }, { onlyOnce: true });
+            window.firebaseOnValue(totalRef, snapshot => resolve(snapshot), { onlyOnce: true });
           });
           const newTotal = (totalSnap.val() || 0) + 1;
           await window.firebaseSet(totalRef, newTotal);
           updateBadge(newTotal);
-          
+
           const todaySnap = await new Promise(resolve => {
-            window.firebaseOnValue(todayRef, snapshot => {
-              resolve(snapshot);
-            }, { onlyOnce: true });
+            window.firebaseOnValue(todayRef, snapshot => resolve(snapshot), { onlyOnce: true });
           });
           const newToday = (todaySnap.val() || 0) + 1;
           await window.firebaseSet(todayRef, newToday);
-          
 
-
-          // Marca timestamp da visita
           Security.safeSet('last_visit_timestamp', Date.now());
           Security.safeSet('last_visit', new Date().toISOString());
           return;
         } catch (e) {
           console.error('Erro Firebase init:', e);
+          // cai pro fallback abaixo
         }
       }
-      
-      // Fallback: usa localStorage
+
+      // Fallback: localStorage (Firebase indisponível)
       const total = (Security.safeGet('total') || 0) + 1;
+      Security.safeSet('total', total); // <- antes o valor incrementado nunca era salvo
+      const todayLocal = (Security.safeGet(todayKey()) || 0) + 1;
+      Security.safeSet(todayKey(), todayLocal);
       updateBadge(total);
-      Security.safeSet(sessionId, true);
+      Security.safeSet('last_visit_timestamp', Date.now()); // <- antes usava uma variável inexistente (sessionId)
       Security.safeSet('last_visit', new Date().toISOString());
     }
 
     function updateBadge(n) {
       const el = document.getElementById('visitor-count');
-      if (el && n !== null) el.textContent = Number(n).toLocaleString('pt-BR');
+      if (el && n !== null && n !== undefined) el.textContent = Number(n).toLocaleString('pt-BR');
     }
 
     async function inc(key) {
-      // Incrementa no localStorage imediatamente
+      // Incrementa no localStorage imediatamente (resposta instantânea na tela)
       const current = (Security.safeGet(key) || 0);
       Security.safeSet(key, current + 1);
-      
-      // Depois tenta salvar no Firebase
+
+      // Depois tenta salvar no Firebase também
       if (window.firebaseDb && window.firebaseRef && window.firebaseSet && window.firebaseOnValue) {
         try {
           const ref = window.firebaseRef(window.firebaseDb, 'metrics/' + key);
-          window.firebaseOnValue(ref, snapshot => {
-            const fbCurrent = snapshot.val() || 0;
-            window.firebaseSet(ref, fbCurrent + 1);
-          }, { onlyOnce: true });
+          await new Promise((resolve, reject) => {
+            window.firebaseOnValue(ref, snapshot => {
+              const fbCurrent = snapshot.val() || 0;
+              window.firebaseSet(ref, fbCurrent + 1).then(resolve).catch(reject);
+            }, { onlyOnce: true });
+          });
         } catch (e) {
           console.error('Erro ao incrementar métrica no Firebase:', e);
         }
@@ -181,58 +148,50 @@
 
     async function updateAdmin(preTotal, preToday) {
       const s = id => document.getElementById(id);
-      
+
       let total = preTotal;
       let today = preToday;
       let complete = null;
       let shares = null;
-      
-      // Se Firebase tá disponível, tenta pegar dados de lá
+
       if (window.firebaseDb && window.firebaseRef && window.firebaseOnValue) {
         try {
-          if (!total) {
+          if (total === undefined || total === null) {
             const totalRef = window.firebaseRef(window.firebaseDb, 'visitors/total');
             total = await new Promise(resolve => {
-              window.firebaseOnValue(totalRef, snapshot => {
-                resolve(snapshot.val());
-              }, { onlyOnce: true });
+              window.firebaseOnValue(totalRef, snapshot => resolve(snapshot.val()), { onlyOnce: true });
             });
           }
-          if (!today) {
-            const todayRef = window.firebaseRef(window.firebaseDb, 'visitors/today_' + todayKey());
+          if (today === undefined || today === null) {
+            const todayRef = window.firebaseRef(window.firebaseDb, 'visitors/' + todayKey());
             today = await new Promise(resolve => {
-              window.firebaseOnValue(todayRef, snapshot => {
-                resolve(snapshot.val());
-              }, { onlyOnce: true });
+              window.firebaseOnValue(todayRef, snapshot => resolve(snapshot.val()), { onlyOnce: true });
             });
           }
-          
+
           const completeRef = window.firebaseRef(window.firebaseDb, 'metrics/completed');
           complete = await new Promise(resolve => {
-            window.firebaseOnValue(completeRef, snapshot => {
-              resolve(snapshot.val());
-            }, { onlyOnce: true });
+            window.firebaseOnValue(completeRef, snapshot => resolve(snapshot.val()), { onlyOnce: true });
           });
-          
+
           const sharesRef = window.firebaseRef(window.firebaseDb, 'metrics/shares');
           shares = await new Promise(resolve => {
-            window.firebaseOnValue(sharesRef, snapshot => {
-              resolve(snapshot.val());
-            }, { onlyOnce: true });
+            window.firebaseOnValue(sharesRef, snapshot => resolve(snapshot.val()), { onlyOnce: true });
           });
         } catch (e) {
           console.error('Erro Firebase admin:', e);
         }
       }
-      
-      // Fallback localStorage
-      if (!total) total = Security.safeGet('total');
-      if (!today) today = Security.safeGet('today_' + todayKey());
-      if (!complete) complete = Security.safeGet('completed');
-      if (!shares) shares = Security.safeGet('shares');
-      
+
+      // Fallback localStorage — só usa o valor local se o Firebase não respondeu
+      // (checagem correta: null/undefined, não "falsy", pra não confundir 0 com "sem dado")
+      if (total === undefined || total === null) total = Security.safeGet('total');
+      if (today === undefined || today === null) today = Security.safeGet(todayKey());
+      if (complete === undefined || complete === null) complete = Security.safeGet('completed');
+      if (shares === undefined || shares === null) shares = Security.safeGet('shares');
+
       const last = Security.safeGet('last_visit');
-      
+
       if(s('admin-total')) s('admin-total').textContent = total !== null && total !== undefined ? Number(total).toLocaleString('pt-BR') : '–';
       if(s('admin-today')) s('admin-today').textContent = today !== null && today !== undefined ? Number(today).toLocaleString('pt-BR') : '–';
       if(s('admin-complete')) s('admin-complete').textContent = complete !== null && complete !== undefined ? Number(complete).toLocaleString('pt-BR') : '–';
@@ -267,7 +226,6 @@
       const el = document.getElementById(sectionId);
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
-    // Se trocamos de página agora, espera o layout assentar antes de rolar.
     if (wasHidden) setTimeout(scrollToTarget, 60);
     else scrollToTarget();
   }
@@ -491,11 +449,12 @@
   let currentVideoIdx = 1;
   let touchStartX = 0;
   let availableVideos = [];
-  
+
   async function openVideosModal() {
     if (!Security.checkRate()) return;
-    
-    // Detecta automaticamente quais vídeos existem
+
+    // Detecta automaticamente quais vídeos existem (video-1.mp4, video-2.mp4...)
+    // até achar o primeiro que não existe.
     availableVideos = [];
     for (let i = 1; i <= 5; i++) {
       try {
@@ -509,41 +468,35 @@
         break;
       }
     }
-    
+    // (removido o trecho que refazia essa mesma lista do zero logo em seguida —
+    // era redundante, availableVideos já está pronta aqui)
+
     if (availableVideos.length === 0) {
       alert('Nenhum vídeo disponível.');
       return;
     }
-    
-    const totalVideos = availableVideos.length;
-    availableVideos = [];
-    for (let i = 1; i <= totalVideos; i++) availableVideos.push(i);
-    if (availableVideos.length === 0) {
-      alert('Nenhum vídeo disponível.');
-      return;
-    }
+
     currentVideoIdx = availableVideos[0];
     showVideoPopup();
   }
-  
+
   function showVideoPopup() {
     const existing = document.getElementById('video-popup-modal');
     if (existing) existing.remove();
-    
+
     const modal = document.createElement('div');
     modal.id = 'video-popup-modal';
     modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.95);display:flex;align-items:center;justify-content:center;z-index:10000;padding:20px';
-    
+
     const currentIdx = availableVideos.indexOf(currentVideoIdx);
     let navHtml = '';
     if (currentIdx > 0) navHtml += '<button onclick="prevVideo()" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.3);border:none;color:#fff;font-size:28px;cursor:pointer;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:10002">‹</button>';
     if (currentIdx < availableVideos.length - 1) navHtml += '<button onclick="nextVideo()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.3);border:none;color:#fff;font-size:28px;cursor:pointer;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:10002">›</button>';
-    
+
     modal.innerHTML = '<div style="position:relative;width:100%;max-width:800px;aspect-ratio:16/9;background:#000;border-radius:8px;overflow:hidden" id="video-container" ontouchstart="touchStart(event)" ontouchend="touchEnd(event)">' + navHtml + '<button onclick="closeVideoPopup()" style="position:absolute;top:10px;right:10px;background:rgba(0,0,0,.6);border:none;color:#fff;font-size:28px;cursor:pointer;width:40px;height:40px;border-radius:50%;z-index:10003;display:flex;align-items:center;justify-content:center">×</button><div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px">⏳ Carregando...</div></div><p style="color:#fff;text-align:center;margin-top:12px;font-size:13px">Vídeo ' + (currentIdx + 1) + ' de ' + availableVideos.length + '</p>';
-    
+
     document.body.appendChild(modal);
-    
-    // Carrega o vídeo após 100ms
+
     setTimeout(() => {
       const container = document.getElementById('video-container');
       if (container) {
@@ -551,7 +504,7 @@
       }
     }, 100);
   }
-  
+
   function nextVideo() {
     const currentIdx = availableVideos.indexOf(currentVideoIdx);
     if (currentIdx < availableVideos.length - 1) {
@@ -559,7 +512,7 @@
       showVideoPopup();
     }
   }
-  
+
   function prevVideo() {
     const currentIdx = availableVideos.indexOf(currentVideoIdx);
     if (currentIdx > 0) {
@@ -567,16 +520,16 @@
       showVideoPopup();
     }
   }
-  
+
   function closeVideoPopup() {
     const modal = document.getElementById('video-popup-modal');
     if (modal) modal.remove();
   }
-  
+
   function touchStart(e) {
     touchStartX = e.touches[0].clientX;
   }
-  
+
   function touchEnd(e) {
     const touchEndX = e.changedTouches[0].clientX;
     const diff = touchStartX - touchEndX;
@@ -588,7 +541,7 @@
 
   /* INIT */
   document.addEventListener('DOMContentLoaded', () => { Metrics.init(); loadA11yPrefs(); });
-  
+
   /* VIDEO PRELOAD */
   function startVideoPreload() {
     for (let i = 1; i <= 3; i++) {
@@ -598,11 +551,11 @@
       }
     }
   }
-  
+
   document.addEventListener('DOMContentLoaded', () => {
     setTimeout(startVideoPreload, 100);
   });
-  
+
   window.addEventListener('load', () => {
     startVideoPreload();
-    });
+  });
