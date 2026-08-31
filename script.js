@@ -112,7 +112,24 @@
       return Promise.race([
         window.firebaseSet(r, value),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout escrevendo ' + path)), TIMEOUT_MS))
-      ]);
+
+      ]).catch(e => {
+        console.error('Erro ao escrever em ' + path, e);
+        throw e;
+      });
+    }
+
+    // Incrementa um contador no Firebase (lê, soma 1, salva)
+    async function incrementCounter(path) {
+      try {
+        const current = await readOnce(path);
+        const newValue = (current || 0) + 1;
+        await writeOnce(path, newValue);
+        return newValue;
+      } catch (e) {
+        console.error('Erro ao incrementar contador ' + path, e);
+        return null;
+      }
     }
 
     async function init() {
@@ -143,9 +160,10 @@
           writeOnce('visitors/total', newTotal).catch(e => console.error('Erro ao salvar total:', e));
           updateBadge(newTotal);
 
-          const currentToday = await readOnce('visitors/' + todayKey());
+          const todayPath = 'visitors/' + todayKey();
+          const currentToday = await readOnce(todayPath);
           const newToday = (currentToday || 0) + 1;
-          writeOnce('visitors/' + todayKey(), newToday).catch(e => console.error('Erro ao salvar today:', e));
+          writeOnce(todayPath, newToday).catch(e => console.error('Erro ao salvar today:', e));
 
           Security.safeSet('last_visit_timestamp', Date.now());
           Security.safeSet('last_visit', new Date().toISOString());
@@ -159,6 +177,8 @@
       // Fallback: localStorage (Firebase indisponível)
       const total = (Security.safeGet('total') || 0) + 1;
       Security.safeSet('total', total);
+
+
       const todayLocal = (Security.safeGet(todayKey()) || 0) + 1;
       Security.safeSet(todayKey(), todayLocal);
       updateBadge(total);
@@ -166,19 +186,6 @@
       Security.safeSet('last_visit', new Date().toISOString());
     }
 
-    function updateBadge(n) {
-      const el = document.getElementById('visitor-count');
-      if (el && n !== null && n !== undefined) el.textContent = Number(n).toLocaleString('pt-BR');
-    }
-
-    async function inc(key) {
-      // Incrementa no localStorage imediatamente (resposta instantânea na tela)
-      const current = (Security.safeGet(key) || 0);
-      Security.safeSet(key, current + 1);
-
-      // Depois tenta salvar no Firebase também — se falhar/travar, o valor
-      // local já está salvo, então nada se perde.
-      try {
         const fbCurrent = await readOnce('metrics/' + key);
         await writeOnce('metrics/' + key, (fbCurrent || 0) + 1);
       } catch (e) {
@@ -193,9 +200,10 @@
       // Cada leitura é independente: se uma travar/falhar, as outras não são
       // afetadas — antes, um erro em qualquer uma delas deixava TODAS as
       // outras em "–", mesmo as que teriam funcionado normalmente.
+      const todayPath = 'visitors/' + todayKey();
       const [total, today, complete, shares] = await Promise.all([
         preTotal !== undefined && preTotal !== null ? Promise.resolve(preTotal) : readOnce('visitors/total').catch(() => null),
-        preToday !== undefined && preToday !== null ? Promise.resolve(preToday) : readOnce('visitors/' + todayKey()).catch(() => null),
+        preToday !== undefined && preToday !== null ? Promise.resolve(preToday) : readOnce(todayPath).catch(() => null),
         readOnce('metrics/completed').catch(() => null),
         readOnce('metrics/shares').catch(() => null),
       ]);
