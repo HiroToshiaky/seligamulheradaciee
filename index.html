@@ -72,6 +72,7 @@
   <div id="nav-overlay" onclick="toggleNavDrawer()"></div>
   <nav id="nav-drawer" aria-label="Navegação principal">
     <button class="nav-link" onclick="goToSection('section-machismo')">Machismo</button>
+    <button class="nav-link" onclick="goToSection('section-videos')">Vídeos</button>
     <button class="nav-link" onclick="goToSection('section-tipos')">Tipos</button>
     <button class="nav-link" onclick="goToSection('section-dados')">Dados</button>
     <button class="nav-link" onclick="goToSection('section-prevencao')">Prevenção</button>
@@ -150,10 +151,39 @@
       </div>
     </section>
 
+    <!-- VÍDEOS DA CAMPANHA -->
+    <section id="section-videos" class="section" style="background:var(--white);border-top:1px solid var(--lilac-pale);border-bottom:1px solid var(--lilac-pale)" aria-labelledby="videos-title">
+      <div class="section-inner">
+        <p class="section-eyebrow">Assista</p>
+        <h2 id="videos-title" class="section-title" style="color:var(--lilac-deep)">Vídeos da Campanha</h2>
+        <div class="divider"></div>
+        <p class="section-body" style="color:var(--ink-soft)">Depoimentos, esclarecimentos e conteúdo em vídeo sobre machismo e violência contra a mulher, produzidos para essa campanha.</p>
+        <div style="text-align:center;margin-top:32px">
+          <button class="btn-primary" onclick="openVideosModal()">
+            ▶ Assistir aos vídeos
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Vídeos ocultos, usados só pra pré-carregar (ver startVideoPreload() no script.js) -->
+    <div style="display:none" aria-hidden="true">
+      <video id="preload-video-1" preload="metadata" muted><source src="videos/video-1.mp4" type="video/mp4"></video>
+      <video id="preload-video-2" preload="metadata" muted><source src="videos/video-2.mp4" type="video/mp4"></video>
+      <video id="preload-video-3" preload="metadata" muted><source src="videos/video-3.mp4" type="video/mp4"></video>
+    </div>
+
     <!-- TÓPICO 2: TIPOS DE VIOLÊNCIA -->
     <section id="section-tipos" class="section" aria-labelledby="tipos-title">
       <div class="section-inner">
         <p class="section-eyebrow">Tópico 2</p>
+        
+        
+        
+        
+        
+        
+        
         <h2 id="tipos-title" class="section-title">Os Tipos de Violência contra a Mulher</h2>
         <div class="divider"></div>
         <p class="section-body" style="margin-bottom:28px">
@@ -328,8 +358,7 @@
           <p style="margin-top:12px"><strong>Alunas Desenvolvedoras:</strong><br>
             • Ana Luiza Marques Marialva Magalhães<br>
             • Karen Rapuque de Souza Guimarães<br>
-            • Danielly Monte da Silva<br>
-            • Mariane Mogueira Barbosa
+            • Danielly Monte da Silva
           </p>
         </div>
         <div class="info-box" style="margin-top:24px">
