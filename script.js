@@ -408,7 +408,9 @@
     ];
     if(mg) mg.textContent = msgs[quizScore] || msgs[2];
     if(nb) nb.style.display = 'inline-flex';
-    Metrics.inc('completed');
+    // "completed" não é mais contado aqui — só conta quando a pessoa termina
+    // TUDO (cenários + quiz), lá no final de nextExpScreen(). Contar aqui
+    // também fazia cada pessoa contar 2x, mesmo errando as 3 perguntas.
   }
 
   /* ══════════════════════════════════
